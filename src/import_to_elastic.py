@@ -25,7 +25,7 @@ def normalise_json_ts(json):
     """
     if 'ts' in json:
         json['ts'] = convert_ts_to_date(float(json['ts']))
-    if 'attachments' in json:
+    if 'attachments' in json and json['attachments'] is not None:
         json['attachments'] = list(map(normalise_json_ts, json['attachments']))
     return json
 

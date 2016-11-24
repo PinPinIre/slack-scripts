@@ -59,12 +59,12 @@ class YoutubeWrapper(object):
         playlists_insert_response = self.youtube.playlists().insert(
           part="snippet,status",
           body = {
-            snippet: {
-              title: title,
-              description: description
+            "snippet": {
+              "title": title,
+              "description": description
             },
-            status: {
-              privacyStatus: "private"
+            "status": {
+              "privacyStatus": "private"
             }
           }
         ).execute()
