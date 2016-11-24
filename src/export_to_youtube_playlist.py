@@ -2,7 +2,6 @@ import sys
 import os
 import json
 import argparse
-import logging
 from urlparse import urlparse, parse_qs
 from datetime import datetime
 
@@ -10,7 +9,6 @@ from elasticsearch import Elasticsearch, ElasticsearchException
 from elasticsearch_dsl import Search
 from youtube_wrapper import YoutubeWrapper
 
-logger = logging.getLogger(__name__)
 channel_prefixes = ['/channel', '/c/']
 VIDEO_ID_LENGTH = 11
 
@@ -19,6 +17,7 @@ def get_all_elastic_links(index, service_name="Youtube"):
     """
     Query Elasticsearch and get a list of all links for a service
     """
+    # TODO: Create an Elasticsearch wrapper and add this there
     client = Elasticsearch(index=index)
     search = Search(using=client)\
         .source(include=["attachments.from_url"])\
@@ -46,16 +45,23 @@ def get_video_id(link_response):
     return unicode(return_val)
 
 
-def is_link_valid(link_result):
-    return len(link_result.attachments) is not 0
+def __es_has_link(elastic_result):
+    """
+    Check if a result from Elastic search has link attachments
+    """
+    return len(elastic_result.attachments) is not 0
 
 
-def export_to_youtube(ids, playlist_id, client, description=""):
+def export_to_youtube(ids, playlist_id, client):
+    """
+    Exports a list of Youtube video IDs to a playlist
+    """
+    # TODO: Maybe move this to youtube_wrapper?
     for idx in ids:
         try:
             client.add_video_to_playlist(idx, playlist_id)
         except Exception:
-            logger.error("something bad happened", exc_info=True)
+            #TODO: Log these errors properly
             print(sys.exc_info()[0])
             print("Exception on:\thttps://www.youtube.com/watch?v=" + idx)
 
@@ -68,23 +74,35 @@ def get_all_playlist_items(playlist_id, yt_client):
 
 
 def remove_duplicate_links(link_ids, yt_ids):
+    """
+    Returns the ids that are in link_ids but not in yt_ids
+    """
+    #TODO: Do this better
     return [x for x in set(link_ids) if x not in yt_ids]
 
 
 def get_playlist_id(playlist_name, client):
+    """
+    Get a playlist called playlist_name, if it doesn't exist it creates it
+    """
     playlists = client.get_playlists()
+    # Find any matches
     playlist = next((p for p in playlists['items'] if p['snippet']['title'] == playlist_name), None)
     if playlist is None:
+        # Create if doesn't exist
         playlist = client.create_playlist(playlist_name)
     return playlist['id']
 
 
 def get_new_ids(index, playlist_name, client):
-
-    # Force evaluation of scan here since it can throw an exception if done
-    # lazily
+    """
+    Gets a list of youtube videoIDs that are in the Elasticsearch index but not
+    in the Youtube playlist
+    """
     playlist_id = get_playlist_id(playlist_name, client)
-    yt_links = filter(is_link_valid, [link for link in get_all_elastic_links(index).scan()])
+    # Force evaluation of scan here since it can throw an exception if done
+    # lazily (Elasticsearch timeout?)
+    yt_links = filter(__es_has_link, [link for link in get_all_elastic_links(index).scan()])
     yt_ids = map(get_video_id, yt_links)
     playlist_items = get_all_playlist_items(playlist_id, client)
     playlist_ids = map(lambda x: x['snippet']['resourceId']['videoId'], playlist_items)

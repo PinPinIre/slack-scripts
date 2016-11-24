@@ -1,6 +1,7 @@
 import sys
 import os
 import json
+import argparse
 from datetime import datetime
 from elasticsearch import Elasticsearch, ElasticsearchException
 
@@ -39,7 +40,7 @@ def import_json(dir_path):
         with open(file_name) as json_data:
             temp_json = json.load(json_data)
             # TODO: Try to remember if this is the pythonic way
-            list(map(normalise_json, temp_json))
+            list(map(normalise_json_ts, temp_json))
             json_files[file_name] = temp_json
     return json_files
 
@@ -68,15 +69,19 @@ def export_to_elastic(json_files, index):
                 print(elasticEx)
                 sys.exit()
     es.indices.refresh(index=index)
-    return "Success!"
 
 
 def main():
-    if len(sys.argv) > 2 and os.path.isdir(sys.argv[1]):
-        # TODO: Better error handling and parsing of this
-        json_files = import_json(sys.argv[1])
-        success = export_to_elastic(json_files, sys.argv[2])
-        print success
+    parser = argparse.ArgumentParser(description='Imports a slack channel  \
+        archive to Elasticsearch')
+    parser.add_argument('--input', help='Input directory containing JSON files \
+        for a Slack channel')
+    parser.add_argument('--index', help='Elasticsearch index name')
+    args = parser.parse_args()
+    if os.path.isdir(args.input):
+        json_files = import_json(args.input)
+        export_to_elastic(json_files, args.index)
+        print "Success"
     else:
         print "Wrong Params!"
 

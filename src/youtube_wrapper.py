@@ -30,12 +30,11 @@ class YoutubeWrapper(object):
         Most of this is the Google boilerplate code. This will get a client to
         access the Youtube API
         """
-
         flow = flow_from_clientsecrets(self.secrets_file,
                                        message=self.MISSING_SECRETS_MSG,
                                        scope=self.YOUTUBE_READ_WRITE_SCOPE)
 
-        # TODO: Fix this!
+        # TODO: Fix this! Came with boilerplate
         storage = Storage("%s-oauth2.json" % sys.argv[0])
         credentials = storage.get()
 
@@ -49,6 +48,10 @@ class YoutubeWrapper(object):
         return youtube
 
     def create_playlist(self, title, description=""):
+        """
+        Create a new Youtube playlist.
+        Returns request respons
+        """
         if self.youtube is None:
             self.youtube = __get_client()
         # This code creates a new, private playlist in the authorized user's
@@ -65,15 +68,22 @@ class YoutubeWrapper(object):
             }
           }
         ).execute()
-        return (playlists_insert_response, youtube)
+        return playlists_insert_response
 
     def get_playlists(self):
+        """
+        Get all the playlists for the current user
+        """
         if self.youtube is None:
             self.youtube = __get_client()
-        response = self.youtube.playlists().list(part="snippet", mine=True).execute()
-        return response
+        return self.youtube.playlists().list(part="snippet", mine=True)\
+            .execute()
 
     def get_playlist_items(self, playlist_id):
+        """
+        Get all of the playlist items from a playlist.
+        Returns a list of playlistItems
+        """
         return_val = []
         max_window = 50
         if self.youtube is None:
@@ -96,6 +106,10 @@ class YoutubeWrapper(object):
         return return_val
 
     def add_video_to_playlist(self, video_id, playlist_id):
+        """
+        Add a video id to a playlists
+        Returns None
+        """
         if self.youtube is None:
             self.youtube = __get_client()
         self.youtube.playlistItems().insert(
