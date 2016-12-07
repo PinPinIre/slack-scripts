@@ -11,6 +11,7 @@ from youtube_wrapper import YoutubeWrapper
 
 channel_prefixes = ['/channel', '/c/']
 VIDEO_ID_LENGTH = 11
+# TODO:The elasticsearch functions here could be abstracted out into a new file
 
 
 def get_all_elastic_links(index, service_name="Youtube"):
@@ -19,7 +20,7 @@ def get_all_elastic_links(index, service_name="Youtube"):
     """
     # TODO: Create an Elasticsearch wrapper and add this there
     client = Elasticsearch(index=index)
-    search = Search(using=client)\
+    search = Search(using=client, index=index)\
         .source(include=["attachments.from_url"])\
         .query("match", attachments__service_name=service_name)
     return search
